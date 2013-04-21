@@ -2307,6 +2307,9 @@ AudioPolicyManagerBase::routing_strategy AudioPolicyManagerBase::getStrategy(
 #ifdef QCOM_HARDWARE
     case AudioSystem::INCALL_MUSIC:
 #endif
+#ifdef USES_AUDIO_LEGACY
+    case AudioSystem::FM:
+#endif
         return STRATEGY_MEDIA;
     case AudioSystem::ENFORCED_AUDIBLE:
         return STRATEGY_ENFORCED_AUDIBLE;
@@ -2976,8 +2979,9 @@ const AudioPolicyManagerBase::VolumeCurvePoint
         sSpeakerMediaVolumeCurve, // DEVICE_CATEGORY_SPEAKER
         sDefaultMediaVolumeCurve  // DEVICE_CATEGORY_EARPIECE
     },
-#ifdef QCOM_HARDWARE
+#if defined(QCOM_HARDWARE) || defined(USES_AUDIO_LEGACY)
     { // AUDIO_STREAM_INCALL_MUSIC
+    { // AUDIO_STREAM_FM
         sDefaultMediaVolumeCurve, // DEVICE_CATEGORY_HEADSET
         sSpeakerMediaVolumeCurve, // DEVICE_CATEGORY_SPEAKER
         sDefaultMediaVolumeCurve  // DEVICE_CATEGORY_EARPIECE

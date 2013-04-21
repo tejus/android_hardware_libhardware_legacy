@@ -230,6 +230,7 @@ public:
      * Range between 0.0 and 1.0. If any value other than NO_ERROR is returned,
      * the software mixer will emulate this capability.
      */
+
     virtual status_t    setMasterVolume(float volume) = 0;
 
     /**
@@ -238,8 +239,9 @@ public:
      * primary audio HAL when the service starts and use the value for setting
      * the initial master volume across all HALs.
      */
+#ifndef USES_AUDIO_LEGACY
     virtual status_t    getMasterVolume(float *volume) = 0;
-
+#endif
     /**
      * setMode is called when the audio mode changes. NORMAL mode is for
      * standard audio playback, RINGTONE when a ringtone is playing, and IN_CALL

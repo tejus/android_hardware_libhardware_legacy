@@ -144,7 +144,12 @@ static audio_channel_mask_t out_get_channels(const struct audio_stream *stream)
 {
     const struct legacy_stream_out *out =
         reinterpret_cast<const struct legacy_stream_out *>(stream);
-    return (audio_channel_mask_t) out->legacy_out->channels();
+   
+#ifndef USES_AUDIO_LEGACY
+     return (audio_channel_mask_t) out->legacy_out->channels();
+#else
+     return (audio_channel_mask_t) out->legacy_out->channels() >> 2;
+#endif
 }
 
 static audio_format_t out_get_format(const struct audio_stream *stream)
@@ -247,7 +252,7 @@ static int out_get_render_position(const struct audio_stream_out *stream,
         reinterpret_cast<const struct legacy_stream_out *>(stream);
     return out->legacy_out->getRenderPosition(dsp_frames);
 }
-
+#ifndef USES_AUDIO_LEGACY
 #ifndef ICS_AUDIO_BLOB
 static int out_get_next_write_timestamp(const struct audio_stream_out *stream,
                                         int64_t *timestamp)
@@ -256,6 +261,7 @@ static int out_get_next_write_timestamp(const struct audio_stream_out *stream,
         reinterpret_cast<const struct legacy_stream_out *>(stream);
     return out->legacy_out->getNextWriteTimestamp(timestamp);
 }
+#endif
 #endif
 
 static int out_add_audio_effect(const struct audio_stream *stream, effect_handle_t effect)
@@ -435,7 +441,7 @@ static int adev_set_master_volume(struct audio_hw_device *dev, float volume)
     struct legacy_audio_device *ladev = to_ladev(dev);
     return ladev->hwif->setMasterVolume(volume);
 }
-
+#ifndef USES_AUDIO_LEGACY
 #ifndef ICS_AUDIO_BLOB
 static int adev_get_master_volume(struct audio_hw_device *dev, float* volume)
 {
@@ -443,7 +449,7 @@ static int adev_get_master_volume(struct audio_hw_device *dev, float* volume)
     return ladev->hwif->getMasterVolume(volume);
 }
 #endif
-
+#endif
 static int adev_set_mode(struct audio_hw_device *dev, audio_mode_t mode)
 {
     struct legacy_audio_device *ladev = to_ladev(dev);
@@ -517,6 +523,9 @@ static int adev_open_output_stream(struct audio_hw_device *dev,
     status_t status;
     struct legacy_stream_out *out;
     int ret;
+#ifdef USES_AUDIO_LEGACY
+    uint32_t channels;
+#endif
 
     out = (struct legacy_stream_out *)calloc(1, sizeof(*out));
     if (!out)
@@ -524,20 +533,24 @@ static int adev_open_output_stream(struct audio_hw_device *dev,
 
     devices = convert_audio_device(devices, HAL_API_REV_2_0, HAL_API_REV_1_0);
 
-#ifndef ICS_AUDIO_BLOB
+#ifndef USES_AUDIO_LEGACY
     out->legacy_out = ladev->hwif->openOutputStream(devices, (int *) &config->format,
                                                     &config->channel_mask,
                                                     &config->sample_rate, &status);
 #else
-    out->legacy_out = ladev->hwif->openOutputStream(devices, format, channels,
-                                                    sample_rate, &status);
+    channels = config->channel_mask << 2;
+    out->legacy_out = ladev->hwif->openOutputStream(devices, (int *) &config->format,
+                                                    &channels,
+                                                    &config->sample_rate, &status);
 #endif
 
     if (!out->legacy_out) {
         ret = status;
         goto err_open;
     }
-
+#ifdef USES_AUDIO_LEGACY
+    channels = config->channel_mask >> 2;
+#endif
     out->stream.common.get_sample_rate = out_get_sample_rate;
     out->stream.common.set_sample_rate = out_set_sample_rate;
     out->stream.common.get_buffer_size = out_get_buffer_size;
@@ -554,10 +567,11 @@ static int adev_open_output_stream(struct audio_hw_device *dev,
     out->stream.set_volume = out_set_volume;
     out->stream.write = out_write;
     out->stream.get_render_position = out_get_render_position;
+#ifndef USES_AUDIO_LEGACY
 #ifndef ICS_AUDIO_BLOB
     out->stream.get_next_write_timestamp = out_get_next_write_timestamp;
 #endif
-
+#endif
     *stream_out = &out->stream;
     return 0;
 
@@ -696,8 +710,10 @@ static int legacy_adev_open(const hw_module_t* module, const char* name,
     ladev->device.init_check = adev_init_check;
     ladev->device.set_voice_volume = adev_set_voice_volume;
     ladev->device.set_master_volume = adev_set_master_volume;
+#ifndef USES_AUDIO_LEGACY
 #ifndef ICS_AUDIO_BLOB
     ladev->device.get_master_volume = adev_get_master_volume;
+#endif
 #endif
     ladev->device.set_mode = adev_set_mode;
     ladev->device.set_mic_mute = adev_set_mic_mute;

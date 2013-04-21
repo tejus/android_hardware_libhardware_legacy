@@ -92,6 +92,9 @@ public:
 #ifdef QCOM_HARDWARE
         INCALL_MUSIC     = 10,
 #endif
+#ifdef USES_AUDIO_LEGACY
+        FM               = 10,
+#endif
         NUM_STREAM_TYPES
     };
 
