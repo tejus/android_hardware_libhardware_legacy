@@ -242,7 +242,18 @@ static ssize_t out_write(struct audio_stream_out *stream, const void* buffer,
 {
     struct legacy_stream_out *out =
         reinterpret_cast<struct legacy_stream_out *>(stream);
+//Fix calling sound. Picked from milestone2 repo.
+#ifdef USES_AUDIO_LEGACY
+    ssize_t writen = out->legacy_out->write(buffer, bytes);
+    if (writen == (bytes >> 1)) {
+        ALOGW("%s:%d leave wirte %d bytes, but expect to write %d, force change the return to right", 
+            __FUNCTION__, __LINE__, writen, bytes);
+        writen = bytes;
+    }
+    return writen;
+#else
     return out->legacy_out->write(buffer, bytes);
+#endif
 }
 
 static int out_get_render_position(const struct audio_stream_out *stream,
@@ -252,8 +263,7 @@ static int out_get_render_position(const struct audio_stream_out *stream,
         reinterpret_cast<const struct legacy_stream_out *>(stream);
     return out->legacy_out->getRenderPosition(dsp_frames);
 }
-#ifndef USES_AUDIO_LEGACY
-#ifndef ICS_AUDIO_BLOB
+#if !defined(ICS_AUDIO_BLOB) && !defined(USES_AUDIO_LEGACY)
 static int out_get_next_write_timestamp(const struct audio_stream_out *stream,
                                         int64_t *timestamp)
 {
@@ -261,7 +271,6 @@ static int out_get_next_write_timestamp(const struct audio_stream_out *stream,
         reinterpret_cast<const struct legacy_stream_out *>(stream);
     return out->legacy_out->getNextWriteTimestamp(timestamp);
 }
-#endif
 #endif
 
 static int out_add_audio_effect(const struct audio_stream *stream, effect_handle_t effect)
@@ -441,14 +450,12 @@ static int adev_set_master_volume(struct audio_hw_device *dev, float volume)
     struct legacy_audio_device *ladev = to_ladev(dev);
     return ladev->hwif->setMasterVolume(volume);
 }
-#ifndef USES_AUDIO_LEGACY
-#ifndef ICS_AUDIO_BLOB
+#if !defined(ICS_AUDIO_BLOB) && !defined(USES_AUDIO_LEGACY)
 static int adev_get_master_volume(struct audio_hw_device *dev, float* volume)
 {
     struct legacy_audio_device *ladev = to_ladev(dev);
     return ladev->hwif->getMasterVolume(volume);
 }
-#endif
 #endif
 static int adev_set_mode(struct audio_hw_device *dev, audio_mode_t mode)
 {
@@ -567,10 +574,8 @@ static int adev_open_output_stream(struct audio_hw_device *dev,
     out->stream.set_volume = out_set_volume;
     out->stream.write = out_write;
     out->stream.get_render_position = out_get_render_position;
-#ifndef USES_AUDIO_LEGACY
-#ifndef ICS_AUDIO_BLOB
+#if !defined(ICS_AUDIO_BLOB) && !defined(USES_AUDIO_LEGACY)
     out->stream.get_next_write_timestamp = out_get_next_write_timestamp;
-#endif
 #endif
     *stream_out = &out->stream;
     return 0;
@@ -710,10 +715,8 @@ static int legacy_adev_open(const hw_module_t* module, const char* name,
     ladev->device.init_check = adev_init_check;
     ladev->device.set_voice_volume = adev_set_voice_volume;
     ladev->device.set_master_volume = adev_set_master_volume;
-#ifndef USES_AUDIO_LEGACY
-#ifndef ICS_AUDIO_BLOB
+#if !defined(ICS_AUDIO_BLOB) && !defined(USES_AUDIO_LEGACY)
     ladev->device.get_master_volume = adev_get_master_volume;
-#endif
 #endif
     ladev->device.set_mode = adev_set_mode;
     ladev->device.set_mic_mute = adev_set_mic_mute;
