@@ -622,7 +622,7 @@ int phy_lookup()
     int fd, pos;
     struct dirent **namelist;
     int n, i;
-
+    sleep(1);
     n = scandir("/sys/class/ieee80211", &namelist, dir_filter,
                 (int (*)(const struct dirent**, const struct dirent**))alphasort);
     if (n != 1) {
