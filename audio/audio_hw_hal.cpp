@@ -244,7 +244,7 @@ static ssize_t out_write(struct audio_stream_out *stream, const void* buffer,
         reinterpret_cast<struct legacy_stream_out *>(stream);
 //Fix calling sound. Picked from milestone2 repo.
 #ifdef USES_AUDIO_LEGACY
-    ssize_t writen = out->legacy_out->write(buffer, bytes);
+    ssize_t unsigned writen = out->legacy_out->write(buffer, bytes);
     if (writen == (bytes >> 1)) {
         ALOGW("%s:%d leave wirte %d bytes, but expect to write %d, force change the return to right", 
             __FUNCTION__, __LINE__, writen, bytes);
@@ -479,6 +479,13 @@ static int adev_get_mic_mute(const struct audio_hw_device *dev, bool *state)
 static int adev_set_parameters(struct audio_hw_device *dev, const char *kvpairs)
 {
     struct legacy_audio_device *ladev = to_ladev(dev);
+#ifdef USES_AUDIO_LEGACY
+    if ((strncmp(kvpairs, "screen_state=", 13) == 0) ||
+	(strncmp(kvpairs, "bt_samplerate=", 14)) == 0) {
+        ALOGV("%s:%d %s (ignored)", __FUNCTION__, __LINE__, kvpairs);
+        return 0;
+    }
+#endif
     return ladev->hwif->setParameters(String8(kvpairs));
 }
 
